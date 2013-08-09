@@ -18,33 +18,31 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA  02110-1301, USA.
  */
-package org.hibernate.hql.ast.spi.predicate;
+package org.hibernate.hql.lucene.internal.builder.predicate;
 
-import java.util.List;
-
-import org.hibernate.hql.ast.spi.predicate.ComparisonPredicate.Type;
+import org.apache.lucene.search.Query;
+import org.hibernate.hql.ast.spi.predicate.LikePredicate;
+import org.hibernate.search.query.dsl.QueryBuilder;
 
 /**
- * Factory for creating predicate instances. Used by the query builder to create a stack of predicates representing the
- * processed query.
+ * Lucene-based {@code LIKE} predicate.
  *
  * @author Gunnar Morling
  */
-public interface PredicateFactory<Q> {
+public class LuceneLikePredicate extends LikePredicate<Query> {
 
-	RootPredicate<Q> getRootPredicate(Class<?> entityType);
+	private final QueryBuilder builder;
 
-	ComparisonPredicate<Q> getComparisonPredicate(Class<?> entityType, Type comparisonType, List<String> propertyPath, Object value);
+	public LuceneLikePredicate(QueryBuilder builder, String propertyName, String patternValue) {
+		super( propertyName, patternValue, null );
+		this.builder = builder;
+	}
 
-	InPredicate<Q> getInPredicate(Class<?> entityType, List<String> propertyPath, List<Object> typedElements);
+	@Override
+	public Query getQuery() {
+		String patternValue = this.patternValue.replace( "%", "*" );
+		patternValue = patternValue.replace( "_", "?" );
 
-	RangePredicate<Q> getRangePredicate(Class<?> entityType, List<String> propertyPath, Object lowerValue, Object upperValue);
-
-	NegationPredicate<Q> getNegationPredicate();
-
-	DisjunctionPredicate<Q> getDisjunctionPredicate();
-
-	ConjunctionPredicate<Q> getConjunctionPredicate();
-
-	LikePredicate<Q> getLikePredicate(Class<?> entityType, List<String> propertyPath, String patternValue, Character escapeCharacter);
+		return builder.keyword().wildcard().onField( propertyName ).matching( patternValue ).createQuery();
+	}
 }
