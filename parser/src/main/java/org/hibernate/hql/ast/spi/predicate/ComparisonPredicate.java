@@ -24,15 +24,44 @@ package org.hibernate.hql.ast.spi.predicate;
  * An comparison predicate such as {@code EQUALS} or {@code LESS}.
  *
  * @author Gunnar Morling
+ * @author Sanne Grinovero
  */
 public abstract class ComparisonPredicate<Q> extends AbstractPredicate<Q> {
 
 	public enum Type {
-		LESS,
-		LESS_OR_EQUAL,
-		EQUALS,
-		GREATER_OR_EQUAL,
-		GREATER
+		LESS {
+			@Override
+			<Q> Q getQuery(ComparisonPredicate<Q> predicate) {
+				return predicate.getStrictlyLessQuery();
+			}
+		},
+		LESS_OR_EQUAL {
+			@Override
+			<Q> Q getQuery(ComparisonPredicate<Q> predicate) {
+				return predicate.getLessOrEqualsQuery();
+			}
+		},
+		EQUALS {
+			@Override
+			<Q> Q getQuery(ComparisonPredicate<Q> predicate) {
+				return predicate.getEqualsQuery();
+			}
+		},
+		GREATER_OR_EQUAL {
+			@Override
+			<Q> Q getQuery(ComparisonPredicate<Q> predicate) {
+				return predicate.getGreaterOrEqualsQuery();
+			}
+		},
+		GREATER {
+			@Override
+			<Q> Q getQuery(ComparisonPredicate<Q> predicate) {
+				return predicate.getStrictlyGreaterQuery();
+			}
+		};
+
+		abstract <Q> Q getQuery(ComparisonPredicate<Q> predicate);
+
 	}
 
 	protected final String propertyName;
@@ -45,6 +74,21 @@ public abstract class ComparisonPredicate<Q> extends AbstractPredicate<Q> {
 		this.type = type;
 		this.value = value;
 	}
+
+	@Override
+	public Q getQuery() {
+		return type.getQuery( this );
+	}
+
+	protected abstract Q getStrictlyLessQuery();
+
+	protected abstract Q getLessOrEqualsQuery();
+
+	protected abstract Q getEqualsQuery();
+
+	protected abstract Q getGreaterOrEqualsQuery();
+
+	protected abstract Q getStrictlyGreaterQuery();
 
 	@Override
 	public String toString() {
